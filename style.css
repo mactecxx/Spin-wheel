@@ -1,42 +1,80 @@
-body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    margin: 0;
-    padding: 20px;
-    background: #f4f4f4;
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+const segments = [0, 1, 2, 5, 10, 25, 50];
+const colors = ["#f39c12", "#2ecc71", "#3498db", "#9b59b6", "#e67e22", "#1abc9c", "#e74c3c"];
+
+const spinButton = document.getElementById("spin");
+const resultText = document.getElementById("result");
+
+const radius = 200;
+const centerX = canvas.width / 2;
+const centerY = canvas.height / 2;
+const angleStep = (2 * Math.PI) / segments.length;
+
+function drawWheel() {
+    for (let i = 0; i < segments.length; i++) {
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, i * angleStep, (i + 1) * angleStep);
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(i * angleStep + angleStep / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 18px sans-serif";
+        ctx.fillText(segments[i], radius - 10, 10);
+        ctx.restore();
+    }
+
+    // draw center circle
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.stroke();
 }
 
-canvas {
-    margin: 20px auto;
-    display: block;
-    border: 2px solid #ccc;
-    background: #fff;
+let angle = 0;
+let spinning = false;
+
+function spinWheel() {
+    if (spinning) return;
+    spinning = true;
+    const spinAngle = Math.random() * 360 + 720;
+    const duration = 3000;
+    const start = performance.now();
+
+    function animate(time) {
+        const elapsed = time - start;
+        const progress = Math.min(elapsed / duration, 1);
+        angle = spinAngle * progress;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate((angle * Math.PI) / 180);
+        ctx.translate(-centerX, -centerY);
+        drawWheel();
+        ctx.restore();
+
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            const finalAngle = (angle % 360) * (Math.PI / 180);
+            const selected = segments.length - Math.floor((finalAngle % (2 * Math.PI)) / angleStep) - 1;
+            resultText.textContent = "Result: " + segments[selected];
+            spinning = false;
+        }
+    }
+
+    requestAnimationFrame(animate);
 }
 
-button {
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    background-color: #3498db;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-}
-
-button:hover {
-    background-color: #2980b9;
-}
-
-#result {
-    font-size: 20px;
-    margin-top: 15px;
-}
-
-.disclaimer {
-    margin-top: 40px;
-    font-size: 12px;
-    color: #777;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-}
+drawWheel();
+spinButton.addEventListener("click", spinWheel);
